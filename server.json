@@ -71,6 +71,20 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "APPLE_VENDOR_NUMBER",
+          "description": "Apple vendor number for sales and finance reports",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "APP_PUBLISH_READ_ONLY",
+          "description": "Set to true to register only read tools (list/get/search/query/download, Google edits without commit)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
         }
       ]
     }

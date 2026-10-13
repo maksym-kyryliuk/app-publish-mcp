@@ -31,6 +31,13 @@ startCommand:
       googleRefreshToken:
         type: string
         description: Google OAuth refresh token
+      appleVendorNumber:
+        type: string
+        description: Apple vendor number for sales and finance reports
+      readOnly:
+        type: boolean
+        default: false
+        description: Register only read tools (list/get/search/query/download, Google edits without commit)
   commandFunction:
     |-
-    config => ({ command: 'npx', args: ['-y', 'app-publish-mcp'], env: { APPLE_KEY_ID: config.appleKeyId || '', APPLE_KEY_TYPE: config.appleKeyType || 'TEAM', APPLE_ISSUER_ID: config.appleIssuerId || '', APPLE_P8_PATH: config.appleP8Path || '', GOOGLE_SERVICE_ACCOUNT_PATH: config.googleServiceAccountPath || '', GOOGLE_CLIENT_ID: config.googleClientId || '', GOOGLE_CLIENT_SECRET: config.googleClientSecret || '', GOOGLE_REFRESH_TOKEN: config.googleRefreshToken || '' } })
+    config => ({ command: 'npx', args: ['-y', 'app-publish-mcp'], env: { APPLE_KEY_ID: config.appleKeyId || '', APPLE_KEY_TYPE: config.appleKeyType || 'TEAM', APPLE_ISSUER_ID: config.appleIssuerId || '', APPLE_P8_PATH: config.appleP8Path || '', GOOGLE_SERVICE_ACCOUNT_PATH: config.googleServiceAccountPath || '', GOOGLE_CLIENT_ID: config.googleClientId || '', GOOGLE_CLIENT_SECRET: config.googleClientSecret || '', GOOGLE_REFRESH_TOKEN: config.googleRefreshToken || '', APPLE_VENDOR_NUMBER: config.appleVendorNumber || '', APP_PUBLISH_READ_ONLY: config.readOnly ? 'true' : '' } })
