@@ -167,6 +167,36 @@ APP_PUBLISH_READ_ONLY=true               # read tools only
 }
 ```
 
+## 키와 역할
+
+Apple은 API 키의 역할로 가능한 작업을 정합니다. 리스팅을 관리하는 키로는 보고서가 `403`이 되고, 보고서용 키로는 리스팅을 바꿀 수 없습니다. 자세한 내용은 [영어 README](README.md#keys-and-roles)를 참고하세요.
+
+| 작업 | 가능한 역할 |
+|------|-----------|
+| 리스팅, 스크린샷·비주얼, 맞춤형 제품 페이지, A/B 테스트, 버전, 심사 제출, TestFlight, 가격 | App Manager, Admin |
+| `apple_get_sales_report` | Sales and Reports, Finance, Admin (App Manager는 `403`) |
+| `apple_get_finance_report` | Finance, Admin (Sales and Reports는 `403`) |
+| App 분석 보고서 읽기 | Sales and Reports, Finance, Admin |
+| `apple_create_analytics_report_request` | Admin만 가능 |
+
+**한 서버에 여러 키:** 메인 키 외에 `APPLE_REPORTS_*`(판매·분석 보고서 읽기)와 `APPLE_ADMIN_*`(분석 보고서 요청 생성·삭제, 재무 보고서)를 설정할 수 있습니다. 키는 API별로 선택되며, 거부된 요청을 더 강한 키로 재시도하지 않습니다.
+
+**상시 Admin 키 없이 분석 보고서 쓰기:** 메인 키는 App Manager, `APPLE_REPORTS_*`에 Sales and Reports 키 설정 → 임시 Admin 키를 `APPLE_ADMIN_*`에 설정하고 앱마다 `apple_create_analytics_report_request`(`ONGOING`)를 한 번 호출 → Admin 키를 폐기하고 `APPLE_ADMIN_*` 삭제. 보고서는 계속 생성되고 Sales and Reports 키로 읽을 수 있습니다.
+
+| 응답 | 주요 원인 |
+|------|---------|
+| `401` | Key ID·Issuer ID·`.p8` 오류 또는 폐기된 키. 토큰을 60초 이전 시각으로 발급하므로 시계가 1분 이내로 빠른 것은 괜찮습니다 |
+| `403` | 키 역할로 허용되지 않는 작업. 위 표를 확인하세요 |
+| 보고서에서 `404` | 해당 날짜·지역의 데이터 없음(무료 앱은 재무 보고서가 없음 등) |
+
+## 안전하게 사용하기
+
+실제 스토어 데이터를 바꾸는 도구가 많습니다. 특히 주의할 것: 심사 제출·출시(`apple_submit_for_review`, `apple_release_version`, `google_commit_edit`), `started=true`인 `apple_update_experiment`(실제 방문자에게 테스트 노출), 가격·배포 지역·인앱 상품, 리뷰 공개 답글, 되돌릴 수 없는 삭제(`apple_delete_*`, `google_delete_*`, `apple_revoke_certificate`).
+
+- 모니터링·보고서용으로는 `APP_PUBLISH_READ_ONLY=true` 읽기 전용 서버를 따로 두세요.
+- 키에는 필요한 최소 역할만 주고, 임시 Admin 키는 사용 후 폐기하세요.
+- 맞춤형 제품 페이지와 제품 페이지 최적화의 쓰기 도구는 Apple OpenAPI 4.5.1 기준 테스트만 거쳤고 실제 계정에서는 아직 검증하지 않았습니다. 먼저 테스트용 앱에서 사용해 보세요.
+
 ## 사용 예제
 
 ### Apple 스크린샷·미리보기 영상 업로드 및 배치

@@ -169,6 +169,36 @@ APP_PUBLISH_READ_ONLY=true               # read tools only
 }
 ```
 
+## 密钥与角色
+
+Apple 按 API 密钥的角色决定可执行的操作。管理商品页的密钥读取报告会返回 `403`，报告密钥则不能修改商品页。详情见[英文 README](README.md#keys-and-roles)。
+
+| 工作 | 可用角色 |
+|------|---------|
+| 商品页、截图与视觉素材、自定义产品页、A/B 测试、版本、提交审核、TestFlight、价格 | App Manager、Admin |
+| `apple_get_sales_report` | Sales and Reports、Finance、Admin（App Manager 返回 `403`） |
+| `apple_get_finance_report` | Finance、Admin（Sales and Reports 返回 `403`） |
+| 读取 App 分析报告 | Sales and Reports、Finance、Admin |
+| `apple_create_analytics_report_request` | 仅 Admin |
+
+**一个服务器使用多个密钥：** 除主密钥外，可设置 `APPLE_REPORTS_*`（读取销售与分析报告）和 `APPLE_ADMIN_*`（创建或删除分析报告请求、财务报告）。密钥按 API 选择，被拒绝的请求不会改用权限更高的密钥重试。
+
+**无需长期 Admin 密钥使用分析报告：** 主密钥用 App Manager，`APPLE_REPORTS_*` 设为 Sales and Reports 密钥 → 将临时 Admin 密钥设为 `APPLE_ADMIN_*`，每个应用调用一次 `apple_create_analytics_report_request`（`ONGOING`）→ 吊销 Admin 密钥并删除 `APPLE_ADMIN_*`。报告会持续生成，用 Sales and Reports 密钥读取。
+
+| 响应 | 常见原因 |
+|------|---------|
+| `401` | Key ID、Issuer ID 或 `.p8` 错误，或密钥已吊销。令牌按 60 秒前的时间签发，本机时钟快 1 分钟以内仍可使用 |
+| `403` | 该密钥角色不允许此操作，请查看上表 |
+| 报告返回 `404` | 该日期或地区没有数据（例如免费应用没有财务报告） |
+
+## 安全使用
+
+许多工具会修改真实的商店数据。尤其注意：提交审核与发布（`apple_submit_for_review`、`apple_release_version`、`google_commit_edit`）、`started=true` 的 `apple_update_experiment`（向真实访客展示测试）、价格、销售地区与应用内商品、公开回复评论、无法撤销的删除（`apple_delete_*`、`google_delete_*`、`apple_revoke_certificate`）。
+
+- 监控与报告请单独运行 `APP_PUBLISH_READ_ONLY=true` 的只读服务器。
+- 每个密钥只授予所需的最小角色，临时 Admin 密钥用后即吊销。
+- 自定义产品页和产品页面优化的写入工具仅按 Apple OpenAPI 4.5.1 做了测试，尚未在真实账号上验证。请先在测试应用上试用。
+
 ## 使用示例
 
 ### 页眉与搜索结果视觉素材、自定义产品页、A/B 测试

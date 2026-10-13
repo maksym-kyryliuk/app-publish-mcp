@@ -169,6 +169,36 @@ APP_PUBLISH_READ_ONLY=true               # read tools only
 }
 ```
 
+## キーとロール
+
+Apple は API キーのロールで操作できる範囲を決めます。リスティングを管理するキーではレポートが `403` になり、レポート用キーではリスティングを変更できません。詳細は[英語版](README.md#keys-and-roles)を参照してください。
+
+| 作業 | 使えるロール |
+|------|------------|
+| リスティング、スクリーンショット・ビジュアル、カスタムプロダクトページ、A/B テスト、バージョン、審査提出、TestFlight、価格 | App Manager、Admin |
+| `apple_get_sales_report` | Sales and Reports、Finance、Admin（App Manager は `403`） |
+| `apple_get_finance_report` | Finance、Admin（Sales and Reports は `403`） |
+| App アナリティクスレポートの読み取り | Sales and Reports、Finance、Admin |
+| `apple_create_analytics_report_request` | Admin のみ |
+
+**1 つのサーバーで複数のキー:** メインキーに加えて `APPLE_REPORTS_*`（売上・アナリティクスの読み取り）と `APPLE_ADMIN_*`（アナリティクスレポートリクエストの作成・削除、財務レポート）を設定できます。キーは API ごとに選ばれ、拒否されたリクエストをより強いキーで再試行することはありません。
+
+**常設の Admin キーなしでアナリティクスを使う手順:** メインキーは App Manager、`APPLE_REPORTS_*` に Sales and Reports キーを設定 → 一時的な Admin キーを `APPLE_ADMIN_*` に設定して `apple_create_analytics_report_request`（`ONGOING`）をアプリごとに 1 回呼ぶ → Admin キーを取り消し、`APPLE_ADMIN_*` を削除。レポートは生成され続け、Sales and Reports キーで読めます。
+
+| 応答 | 主な原因 |
+|------|---------|
+| `401` | Key ID・Issuer ID・`.p8` の誤り、または取り消されたキー。トークンは 60 秒前の時刻で発行するので、時計が 1 分以内進んでいても動作します |
+| `403` | キーのロールでは許可されない操作。上の表を確認してください |
+| レポートで `404` | その日付・地域のデータがない（無料アプリには財務レポートがない等） |
+
+## 安全に使うために
+
+実際のストアデータを変更するツールが多数あります。特に注意: 審査提出・リリース（`apple_submit_for_review`、`apple_release_version`、`google_commit_edit`）、`started=true` の `apple_update_experiment`（実際の訪問者にテストを表示）、価格・配信地域・課金アイテム、レビューへの公開返信、元に戻せない削除（`apple_delete_*`、`google_delete_*`、`apple_revoke_certificate`）。
+
+- 監視・レポート用には `APP_PUBLISH_READ_ONLY=true` の読み取り専用サーバーを別に用意してください。
+- キーには必要最小限のロールを与え、一時的な Admin キーは使用後に取り消してください。
+- カスタムプロダクトページとプロダクトページの最適化の書き込みツールは、Apple の OpenAPI 4.5.1 に沿ったテストのみで、実アカウントではまだ検証していません。まずテスト用アプリで試してください。
+
 ## 使用例
 
 ### ヘッダー・検索結果ビジュアル、カスタムプロダクトページ、A/B テスト

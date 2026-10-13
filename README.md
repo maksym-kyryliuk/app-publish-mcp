@@ -116,7 +116,7 @@ npm run build
 ### 2. Apple Credentials
 
 1. Go to [App Store Connect > Keys](https://appstoreconnect.apple.com/access/integrations/api)
-2. Create an API Key with **App Manager** role
+2. Create an API Key with **App Manager** role (reports need a second key, see [Keys and roles](#keys-and-roles))
 3. Download the `.p8` file
 4. Note the **Key ID** and, for team keys, the **Issuer ID**. For an individual key, set `APPLE_KEY_TYPE=INDIVIDUAL` and omit the issuer ID.
 5. Use a Team API key with suitable access for Bundle ID, certificate, profile, capability, or device tools.
@@ -159,9 +159,7 @@ APPLE_ADMIN_P8_PATH=/path/to/AuthKey_ADMIN.p8
 APP_PUBLISH_READ_ONLY=true               # register only read tools (list/get/search/query/download, Google edits without commit)
 ```
 
-Each request picks its Apple key by API. Sales and analytics reads use `APPLE_REPORTS_*`, falling back to `APPLE_ADMIN_*` and then the main key; `financeReports` prefers `APPLE_ADMIN_*` (a Sales and Reports key cannot read it), then `APPLE_REPORTS_*`; creating or deleting an analytics report request uses `APPLE_ADMIN_*`; everything else uses the main key. This lets an App Manager key run the listing while a Sales and Reports key reads reports. Apple lets ADMIN, SALES_AND_REPORTS and FINANCE keys read analytics reports; Sales and Reports keys cannot read finance reports, and creating an analytics report request needs Admin. `*_ISSUER_ID` and `*_KEY_TYPE` default to the main key's values.
-
-The flag fails closed: any value except empty, `0`, `false`, `no` or `off` turns it on. Google edit sessions stay available because listings, tracks and images are read inside an edit; `google_commit_edit` is not registered, so nothing goes live. Report tools that take `outputPath` still write that local file (never over an existing one unless `overwrite=true`).
+See [Keys and roles](#keys-and-roles) for the extra keys and [Safety](#safety) for read-only mode.
 
 The server automatically loads `.env` from the package/project root. Environment variables supplied by the shell or MCP host take precedence. For OAuth variables, see `.env.example`.
 
@@ -186,6 +184,87 @@ Add to `~/.claude/settings.local.json`:
   }
 }
 ```
+
+## Keys and roles
+
+Apple decides what an API key may do by its role, so one key is often not enough. A key that can run the listing gets `403` on reports, and a reports key cannot change the listing.
+
+### Which Apple role does what
+
+| Job | Works with | Fails with |
+|-----|-----------|------------|
+| Listing, screenshots and visuals, custom product pages, A/B tests, versions, review submission, TestFlight, pricing | App Manager, Admin | Sales and Reports, Finance |
+| Bundle IDs, capabilities, certificates, profiles, devices | Team key with suitable access (Admin covers it) | Individual keys |
+| `apple_get_sales_report` | Sales and Reports, Finance, Admin | App Manager (`403`) |
+| `apple_get_finance_report` | Finance, Admin | Sales and Reports, App Manager (`403`) |
+| Reading App Analytics reports | Sales and Reports, Finance, Admin | App Manager (`403`) |
+| `apple_create_analytics_report_request` | Admin | Sales and Reports, App Manager (`403`) |
+
+Apple documents the analytics and sales rows in [Analytics Reports](https://developer.apple.com/documentation/analytics-reports). The App Manager and analytics-request rows were confirmed against a live account.
+
+### Several keys on one server
+
+Set the main key as usual and add optional keys. Each request picks its key by API; the server never retries a refused request with a stronger key.
+
+| Request | Key used |
+|---------|----------|
+| Everything except reports | Main key (`APPLE_KEY_ID`, `APPLE_P8_PATH`) |
+| Sales reports, reading analytics reports | `APPLE_REPORTS_*`, else `APPLE_ADMIN_*`, else the main key |
+| Finance reports | `APPLE_ADMIN_*`, else `APPLE_REPORTS_*`, else the main key |
+| Creating or deleting an analytics report request | `APPLE_ADMIN_*`, else the main key |
+
+`APPLE_REPORTS_ISSUER_ID`, `APPLE_ADMIN_ISSUER_ID` and the matching `*_KEY_TYPE` default to the main key's values. `apple_get_sales_report` and `apple_get_finance_report` also need `APPLE_VENDOR_NUMBER` (App Store Connect → Payments and Financial Reports).
+
+### Recipe: App Analytics without a permanent Admin key
+
+1. Main key: **App Manager**.
+2. Create a **Sales and Reports** key and set `APPLE_REPORTS_KEY_ID` / `APPLE_REPORTS_P8_PATH`.
+3. Create a temporary **Admin** key, set `APPLE_ADMIN_KEY_ID` / `APPLE_ADMIN_P8_PATH`, restart the server and call `apple_create_analytics_report_request` once per app (`ONGOING`).
+4. Revoke the Admin key in App Store Connect and remove the `APPLE_ADMIN_*` variables. The request keeps producing reports, and the Sales and Reports key reads them.
+
+Apple generates the first report instances a day or two later and keeps each instance for 35 days. Download them with `apple_list_analytics_reports` → `apple_list_analytics_report_instances` → `apple_download_analytics_report`.
+
+### Google
+
+One service account covers publishing and vitals. Enable the **Google Play Android Developer API** for publishing and the **Google Play Developer Reporting API** for vitals, and grant the account the needed app permissions in Play Console. Vitals need **View app information**.
+
+### Troubleshooting
+
+| Response | Usually means |
+|----------|---------------|
+| `401 NOT_AUTHORIZED` | Wrong Key ID, Issuer ID or `.p8`, or a revoked key. Tokens are issued 60 seconds in the past, so a clock up to a minute fast still works; sync the system clock if it is further off. |
+| `403 FORBIDDEN_ERROR` "The API key in use does not allow this request" | The key's role cannot do this. Check the role table and add `APPLE_REPORTS_*` or `APPLE_ADMIN_*`. |
+| `404 NOT_FOUND` on sales or finance reports | No data for that date or region, e.g. a free app has no finance report. |
+| `400 PARAMETER_ERROR` on sales reports | Wrong vendor number, or a `reportSubType` / `version` that does not fit the `reportType`. |
+| Google vitals return no rows | Google has no vitals data for the app in that window, which is common for new or low-traffic apps. |
+
+## Safety
+
+Most tools change real store data. Know which ones before you let an assistant call them.
+
+**Reach users or start Apple review**
+- `apple_submit_for_review`, `apple_release_version`, `apple_create_phased_release` / `apple_update_phased_release`
+- `apple_update_experiment` with `started=true` starts a product page test that real visitors see
+- `google_commit_edit` publishes everything in the edit; `google_create_release`, `google_promote_release` and `google_halt_release` take effect on commit
+
+**Money and availability**
+- `apple_set_price` (replaces the whole manual price schedule), `apple_create_availability`, `apple_update_territory_availability`
+- Creating, changing, activating or deactivating in-app purchases, subscriptions, base plans, one-time products and offer codes
+
+**Public text**
+- `apple_respond_to_review` and `google_reply_to_review` post replies everyone can read
+
+**Cannot be undone**
+- Every `apple_delete_*` tool, `google_delete_listing`, `google_delete_all_images`, `google_delete_iap`, `google_delete_one_time_product`
+- `apple_revoke_certificate`: builds signed with that certificate stop installing
+
+**Recommendations**
+- Run a separate read-only server for monitoring and reports: `APP_PUBLISH_READ_ONLY=true`. It registers only list/get/search/query/download tools and Google edits without commit, so nothing goes live. Any value except empty, `0`, `false`, `no` or `off` turns it on. Report tools that take `outputPath` still write that local file, never over an existing one unless `overwrite=true`.
+- Give each key the smallest role that does the job, and revoke temporary Admin keys after use.
+- On Google Play, change things inside an edit, check them with `google_validate_edit`, then commit; `google_delete_edit` discards the edit.
+- Keep your MCP client's tool approval on for write tools.
+
+**Tested against mocks only:** the write tools for custom product pages and product page optimization follow Apple's OpenAPI 4.5.1 schema and are covered by tests, but have not yet been run against a live account. Try them on a test app first.
 
 ## Usage Examples
 
