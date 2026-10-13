@@ -16,7 +16,7 @@
 
 新しいスクリーンショット・プレビュー動画には Asset Library を使用してください。公式の仕様を取得し、アップロード、処理完了確認、配置、並び替え、削除まで対応します。[手順は英語版](README.md#upload-and-arrange-apple-screenshots-or-preview-videos)を参照してください。旧スクリーンショット API は 4.5.1 で非推奨になりましたが、終了日は未発表のため既存ツールは互換性を維持しています。韓国の年齢制限 override は `ALL`・`TWELVE_PLUS` にも対応します。
 
-### Apple App Store Connect (98ツール)
+### Apple App Store Connect (130ツール)
 
 | カテゴリ | ツール |
 |----------|-------|
@@ -47,12 +47,16 @@
 | 価格ポイント | `apple_get_subscription_price_points`, `apple_get_iap_price_points` |
 | オファーコード | `apple_list_subscription_offer_codes`, `apple_get_subscription_offer_code`, `apple_create_subscription_offer_code`, `apple_list_iap_offer_codes`, `apple_get_iap_offer_code`, `apple_create_iap_offer_code` |
 | ウィンバックオファー | `apple_list_win_back_offers`, `apple_get_win_back_offer` |
+| カスタムプロダクトページ | `apple_list_custom_product_pages`, `apple_get_custom_product_page`, `apple_create_custom_product_page`, `apple_update_custom_product_page`, `apple_delete_custom_product_page`, `apple_list_custom_product_page_versions`, `apple_create_custom_product_page_version`, `apple_update_custom_product_page_version`, `apple_list_custom_product_page_localizations`, `apple_create_custom_product_page_localization`, `apple_update_custom_product_page_localization`, `apple_delete_custom_product_page_localization` |
+| プロダクトページの最適化 | `apple_list_experiments`, `apple_get_experiment`, `apple_create_experiment`, `apple_update_experiment`, `apple_delete_experiment`, `apple_list_experiment_treatments`, `apple_create_experiment_treatment`, `apple_update_experiment_treatment`, `apple_delete_experiment_treatment`, `apple_list_treatment_localizations`, `apple_create_treatment_localization`, `apple_delete_treatment_localization` |
+| 売上・財務レポート | `apple_get_sales_report`, `apple_get_finance_report` |
+| App アナリティクスレポート | `apple_list_analytics_report_requests`, `apple_create_analytics_report_request`, `apple_list_analytics_reports`, `apple_list_analytics_report_instances`, `apple_list_analytics_report_segments`, `apple_download_analytics_report` |
 
 `apple_get_pricing` は手動価格と自動価格の全ページを取得します。`apple_set_price` は手動価格スケジュール全体を送信するため、維持する現在および将来の手動価格をすべて含めてください。省略した項目はスケジュールから削除される可能性があります。
 
 Bundle ID、Capability、証明書、プロビジョニングプロファイル、デバイスなどの Apple プロビジョニングリソースには、適切なアクセス権を持つ Team API キーが必要です。Individual API キーは対応する App Store Connect 公開操作には使えますが、これらのプロビジョニングリソースには使えません。TestFlight の内部テスターは Apple 社員ではなく、App Store Connect チームのメンバーです。
 
-### Google Play Console (49ツール)
+### Google Play Console (53ツール)
 | カテゴリ | ツール |
 |----------|-------|
 | 編集ライフサイクル | `google_create_edit`, `google_get_edit`, `google_commit_edit`, `google_validate_edit`, `google_delete_edit` |
@@ -67,7 +71,10 @@ Bundle ID、Capability、証明書、プロビジョニングプロファイル�
 | レビュー | `google_list_reviews`, `google_get_review`, `google_reply_to_review` |
 | アプリ内商品 | `google_list_iap`, `google_get_iap`, `google_create_iap`, `google_update_iap`, `google_delete_iap` |
 | サブスクリプション | `google_list_subscriptions`, `google_get_subscription`, `google_create_subscription`, `google_activate_subscription_base_plan`, `google_deactivate_subscription_base_plan` |
+| Android Vitals³ | `google_query_vitals`, `google_list_vitals_anomalies`, `google_search_vitals_error_issues`, `google_search_vitals_error_reports` |
 | 単発商品 | `google_list_one_time_products`, `google_get_one_time_product`, `google_create_one_time_product`, `google_update_one_time_product`, `google_delete_one_time_product`, `google_activate_purchase_option`, `google_deactivate_purchase_option` |
+
+³ Vitals は [Play Developer Reporting API](https://developers.google.com/play/developer/reporting) を使用します。サービスアカウントの Cloud プロジェクトで API を有効にし、Play Console で **アプリ情報の閲覧** 権限を付与してください。このスコープ追加前に保存した OAuth トークンは `app-publish-mcp auth google` で再認証が必要です。
 
 ### プロンプト (2個)
 | プロンプト | 説明 |
@@ -126,6 +133,18 @@ APPLE_P8_PATH=/path/to/AuthKey.p8
 GOOGLE_SERVICE_ACCOUNT_PATH=/path/to/service-account.json
 ```
 
+任意:
+```
+APPLE_VENDOR_NUMBER=YOUR_VENDOR_NUMBER   # sales and finance reports
+APPLE_REPORTS_KEY_ID=REPORTS_KEY_ID      # key for Sales/Finance/Analytics reports
+APPLE_REPORTS_P8_PATH=/path/to/AuthKey_REPORTS.p8
+APPLE_ADMIN_KEY_ID=ADMIN_KEY_ID          # only for creating analytics report requests
+APPLE_ADMIN_P8_PATH=/path/to/AuthKey_ADMIN.p8
+APP_PUBLISH_READ_ONLY=true               # read tools only
+```
+
+`APP_PUBLISH_READ_ONLY` は空・`0`・`false`・`no`・`off` 以外の値で有効になります（フェイルクローズ）。読み取り専用モードでは list/get/search/query/download ツールと、コミットなしの Google edit セッションだけが登録されます。`outputPath` を受け取るレポートツールはローカルファイルを書き込みますが、`overwrite=true` がない限り既存ファイルは上書きしません。
+
 サーバーはパッケージ/プロジェクトルートの `.env` を自動的に読み込みます。シェルまたは MCP ホストから渡された環境変数が優先されます。OAuth の環境変数は `.env.example` を参照してください。
 
 ### 5. Claude Codeに追加
@@ -150,7 +169,45 @@ GOOGLE_SERVICE_ACCOUNT_PATH=/path/to/service-account.json
 }
 ```
 
+## キーとロール
+
+Apple は API キーのロールで操作できる範囲を決めます。リスティングを管理するキーではレポートが `403` になり、レポート用キーではリスティングを変更できません。詳細は[英語版](README.md#keys-and-roles)を参照してください。
+
+| 作業 | 使えるロール |
+|------|------------|
+| リスティング、スクリーンショット・ビジュアル、カスタムプロダクトページ、A/B テスト、バージョン、審査提出、TestFlight、価格 | App Manager、Admin |
+| `apple_get_sales_report` | Sales and Reports、Finance、Admin（App Manager は `403`） |
+| `apple_get_finance_report` | Finance、Admin（Sales and Reports は `403`） |
+| App アナリティクスレポートの読み取り | Sales and Reports、Finance、Admin |
+| `apple_create_analytics_report_request` | Admin のみ |
+
+**1 つのサーバーで複数のキー:** メインキーに加えて `APPLE_REPORTS_*`（売上・アナリティクスの読み取り）と `APPLE_ADMIN_*`（アナリティクスレポートリクエストの作成・削除、財務レポート）を設定できます。キーは API ごとに選ばれ、拒否されたリクエストをより強いキーで再試行することはありません。
+
+**常設の Admin キーなしでアナリティクスを使う手順:** メインキーは App Manager、`APPLE_REPORTS_*` に Sales and Reports キーを設定 → 一時的な Admin キーを `APPLE_ADMIN_*` に設定して `apple_create_analytics_report_request`（`ONGOING`）をアプリごとに 1 回呼ぶ → Admin キーを取り消し、`APPLE_ADMIN_*` を削除。レポートは生成され続け、Sales and Reports キーで読めます。
+
+| 応答 | 主な原因 |
+|------|---------|
+| `401` | Key ID・Issuer ID・`.p8` の誤り、または取り消されたキー。トークンは 60 秒前の時刻で発行するので、時計が 1 分以内進んでいても動作します |
+| `403` | キーのロールでは許可されない操作。上の表を確認してください |
+| レポートで `404` | その日付・地域のデータがない（無料アプリには財務レポートがない等） |
+
+## 安全に使うために
+
+実際のストアデータを変更するツールが多数あります。特に注意: 審査提出・リリース（`apple_submit_for_review`、`apple_release_version`、`google_commit_edit`）、`started=true` の `apple_update_experiment`（実際の訪問者にテストを表示）、価格・配信地域・課金アイテム、レビューへの公開返信、元に戻せない削除（`apple_delete_*`、`google_delete_*`、`apple_revoke_certificate`）。
+
+- 監視・レポート用には `APP_PUBLISH_READ_ONLY=true` の読み取り専用サーバーを別に用意してください。
+- キーには必要最小限のロールを与え、一時的な Admin キーは使用後に取り消してください。
+- カスタムプロダクトページとプロダクトページの最適化の書き込みツールは、Apple の OpenAPI 4.5.1 に沿ったテストのみで、実アカウントではまだ検証していません。まずテスト用アプリで試してください。
+
 ## 使用例
+
+### ヘッダー・検索結果ビジュアル、カスタムプロダクトページ、A/B テスト
+
+プロダクトページのヘッダーと検索結果ビジュアルは Asset Library の配置（`PRODUCT_PAGE_HEADER_ASSET`、`APP_STORE_SEARCH_RESULTS_ASSET`）です。`apple_get_asset_specs(placementType=...)` で仕様を選び、`apple_upload_asset` でアップロードし、`apple_create_placement` で配置します。同じ配置はカスタムプロダクトページのローカライゼーションとテストのトリートメントでも使えます。
+
+### ストア分析
+
+`apple_create_analytics_report_request` で App アナリティクスレポートの生成を開始します（最初のデータは 1〜2 日後）。続いて `apple_list_analytics_reports` → `apple_list_analytics_report_instances` → `apple_download_analytics_report`。`apple_get_sales_report` は日別の販売数と収益を返します。Android では `google_query_vitals` が直近 28 日のクラッシュ率・ANR 率を返します。
 
 ### iOSアプリのアップデート申請
 

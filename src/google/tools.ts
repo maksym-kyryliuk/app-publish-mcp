@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { androidpublisher_v3 } from 'googleapis';
 import { GoogleClient } from './client.js';
+import { vitalsTools } from './vitals.js';
 
 interface ToolDef {
   name: string;
@@ -1473,4 +1474,6 @@ export const googleTools: ToolDef[] = [
   // One-time Products
   listOneTimeProducts, getOneTimeProduct, createOneTimeProduct, updateOneTimeProduct, deleteOneTimeProduct,
   activatePurchaseOption, deactivatePurchaseOption,
+  // Android vitals (Play Developer Reporting API)
+  ...vitalsTools,
 ];
