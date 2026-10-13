@@ -6,6 +6,7 @@ import { GoogleClient } from './google/client.js';
 import { appleTools } from './apple/tools.js';
 import { googleTools } from './google/tools.js';
 import { loadSavedGoogleToken } from './auth.js';
+import { isReadOnlyMode, isReadTool } from './read-only.js';
 import { existsSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -63,8 +64,15 @@ if (googleSaPath) {
   }
 }
 
+const readOnly = isReadOnlyMode();
+const enabled = <T extends { name: string }>(tools: T[]) => (readOnly ? tools.filter(tool => isReadTool(tool.name)) : tools);
+if (readOnly) {
+  const skipped = [...appleTools, ...googleTools].filter(tool => !isReadTool(tool.name)).length;
+  console.error(`app-publish-mcp: read-only mode, ${skipped} write tools are not registered`);
+}
+
 // ── Register Apple tools ──
-for (const tool of appleTools) {
+for (const tool of enabled(appleTools)) {
   server.tool(tool.name, tool.description, tool.schema.shape, async (args: any) => {
     if (!appleClient) {
       return {
@@ -82,7 +90,7 @@ for (const tool of appleTools) {
 }
 
 // ── Register Google tools ──
-for (const tool of googleTools) {
+for (const tool of enabled(googleTools)) {
   server.tool(tool.name, tool.description, tool.schema.shape, async (args: any) => {
     if (!googleClient) {
       return {
@@ -101,7 +109,8 @@ for (const tool of googleTools) {
 
 // ── Prompts ──
 
-server.prompt(
+// Release steps need write tools, so the checklist is not offered in read-only mode
+if (!readOnly) server.prompt(
   'app_release_checklist',
   'Guided checklist for releasing an app update on iOS and/or Android, from signed artifact upload through review and release status.',
   {
@@ -230,9 +239,10 @@ server.resource(
         authMethod: googleSaPath ? 'service_account' : (googleClientId ? 'oauth2' : (loadSavedGoogleToken() ? 'saved_token' : 'none')),
       },
       tools: {
-        apple: appleTools.length,
-        google: googleTools.length,
-        total: appleTools.length + googleTools.length,
+        apple: enabled(appleTools).length,
+        google: enabled(googleTools).length,
+        total: enabled(appleTools).length + enabled(googleTools).length,
+        readOnly,
       },
     };
 
@@ -260,12 +270,12 @@ server.resource(
       apple: {
         name: 'Apple App Store Connect',
         configured: !!appleClient,
-        tools: appleTools.map(t => ({ name: t.name, description: t.description })),
+        tools: enabled(appleTools).map(t => ({ name: t.name, description: t.description })),
       },
       google: {
         name: 'Google Play Console',
         configured: !!googleClient,
-        tools: googleTools.map(t => ({ name: t.name, description: t.description })),
+        tools: enabled(googleTools).map(t => ({ name: t.name, description: t.description })),
       },
     };
 
