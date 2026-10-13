@@ -58,9 +58,13 @@ export class AppleClient {
       throw new Error('Apple team API keys require an issuerId');
     }
 
+    // Apple rejects a token whose iat is even a second in the future, so a local
+    // clock running ahead fails every fresh token with 401. Backdate iat; the
+    // lifetime still stays within Apple's 20-minute limit.
+    const issuedAt = now - 60;
     const payload: Record<string, string | number> = {
-      iat: now,
-      exp: now + 20 * 60, // 20 minutes
+      iat: issuedAt,
+      exp: issuedAt + 20 * 60,
       aud: 'appstoreconnect-v1',
     };
     if (keyType === 'INDIVIDUAL') {
@@ -73,7 +77,7 @@ export class AppleClient {
       algorithm: 'ES256',
       header: { alg: 'ES256', kid: this.config.keyId, typ: 'JWT' },
     });
-    this.tokenExp = now + 20 * 60;
+    this.tokenExp = issuedAt + 20 * 60;
     return this.token;
   }
 
