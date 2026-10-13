@@ -4,6 +4,8 @@ import { createReadStream, readFileSync, statSync } from 'node:fs';
 import { basename, extname } from 'node:path';
 import { AppleApiError, AppleClient } from './client.js';
 import { assetLibraryTools } from './asset-library.js';
+import { productPageTools } from './product-pages.js';
+import { reportTools } from './reports.js';
 
 // Helper to define a tool
 interface ToolDef {
@@ -3029,4 +3031,8 @@ export const appleTools: ToolDef[] = [
   listIAPOfferCodes, getIAPOfferCode, createIAPOfferCode,
   // Win-Back Offers
   listWinBackOffers, getWinBackOffer,
+  // Custom Product Pages & Product Page Optimization
+  ...productPageTools,
+  // Sales, Finance & App Analytics reports
+  ...reportTools,
 ];

@@ -83,9 +83,11 @@ export class AppleClient {
       method?: string;
       body?: any;
       params?: Record<string, string>;
+      /** Return the response body as a Buffer (gzip reports) instead of parsing JSON */
+      raw?: boolean;
     } = {},
   ): Promise<T> {
-    const { method = 'GET', body, params } = options;
+    const { method = 'GET', body, params, raw } = options;
     let url = path.startsWith('http')
       ? path
         : /^\/v\d+\//.test(path)
@@ -107,6 +109,7 @@ export class AppleClient {
           headers: {
             Authorization: `Bearer ${this.getToken()}`,
             'Content-Type': 'application/json',
+            ...(raw ? { Accept: 'application/a-gzip, application/json' } : {}),
           },
           body: body ? JSON.stringify(body) : undefined,
           signal: AbortSignal.timeout(30_000),
@@ -132,6 +135,10 @@ export class AppleClient {
           );
         }
 
+        if (raw) {
+          if (res.status === 204) throw new Error(`Apple API ${method} ${path} returned no content`);
+          return Buffer.from(await res.arrayBuffer()) as T;
+        }
         if (res.status === 204) return {} as T;
         return await res.json() as T;
       } catch (error) {
