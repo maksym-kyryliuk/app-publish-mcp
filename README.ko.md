@@ -14,7 +14,7 @@
 
 ## 기능
 
-### Apple App Store Connect (98개 도구)
+### Apple App Store Connect (130개 도구)
 
 | 카테고리 | 도구 |
 |----------|-------|
@@ -45,12 +45,16 @@
 | 가격 포인트 | `apple_get_subscription_price_points`, `apple_get_iap_price_points` |
 | 오퍼 코드 | `apple_list_subscription_offer_codes`, `apple_get_subscription_offer_code`, `apple_create_subscription_offer_code`, `apple_list_iap_offer_codes`, `apple_get_iap_offer_code`, `apple_create_iap_offer_code` |
 | 윈백 오퍼 | `apple_list_win_back_offers`, `apple_get_win_back_offer` |
+| 맞춤형 제품 페이지 | `apple_list_custom_product_pages`, `apple_get_custom_product_page`, `apple_create_custom_product_page`, `apple_update_custom_product_page`, `apple_delete_custom_product_page`, `apple_list_custom_product_page_versions`, `apple_create_custom_product_page_version`, `apple_update_custom_product_page_version`, `apple_list_custom_product_page_localizations`, `apple_create_custom_product_page_localization`, `apple_update_custom_product_page_localization`, `apple_delete_custom_product_page_localization` |
+| 제품 페이지 최적화 | `apple_list_experiments`, `apple_get_experiment`, `apple_create_experiment`, `apple_update_experiment`, `apple_delete_experiment`, `apple_list_experiment_treatments`, `apple_create_experiment_treatment`, `apple_update_experiment_treatment`, `apple_delete_experiment_treatment`, `apple_list_treatment_localizations`, `apple_create_treatment_localization`, `apple_delete_treatment_localization` |
+| 판매·재무 보고서 | `apple_get_sales_report`, `apple_get_finance_report` |
+| App 분석 보고서 | `apple_list_analytics_report_requests`, `apple_create_analytics_report_request`, `apple_list_analytics_reports`, `apple_list_analytics_report_instances`, `apple_list_analytics_report_segments`, `apple_download_analytics_report` |
 
 `apple_get_pricing`은 수동·자동 가격의 모든 페이지를 조회합니다. `apple_set_price`는 전체 수동 가격 일정을 제출하므로 유지해야 할 현재·향후 수동 가격 항목을 모두 포함하세요. 누락한 항목은 일정에서 제거될 수 있습니다.
 
 Bundle ID, capability, certificate, profile, device 같은 Apple 프로비저닝 리소스는 적절한 권한의 Team API key가 필요합니다. Individual API key는 지원되는 App Store Connect 배포 작업에는 사용할 수 있지만 이 프로비저닝 리소스에는 사용할 수 없습니다. TestFlight 내부 테스터는 Apple 직원이 아니라 App Store Connect 팀 멤버입니다.
 
-### Google Play Console (49개 도구)
+### Google Play Console (53개 도구)
 | 카테고리 | 도구 |
 |----------|-------|
 | 편집 생명주기 | `google_create_edit`, `google_get_edit`, `google_commit_edit`, `google_validate_edit`, `google_delete_edit` |
@@ -65,7 +69,10 @@ Bundle ID, capability, certificate, profile, device 같은 Apple 프로비저닝
 | 리뷰 | `google_list_reviews`, `google_get_review`, `google_reply_to_review` |
 | 인앱 상품 | `google_list_iap`, `google_get_iap`, `google_create_iap`, `google_update_iap`, `google_delete_iap` |
 | 구독 | `google_list_subscriptions`, `google_get_subscription`, `google_create_subscription`, `google_activate_subscription_base_plan`, `google_deactivate_subscription_base_plan` |
+| Android Vitals³ | `google_query_vitals`, `google_list_vitals_anomalies`, `google_search_vitals_error_issues`, `google_search_vitals_error_reports` |
 | 일회성 상품 | `google_list_one_time_products`, `google_get_one_time_product`, `google_create_one_time_product`, `google_update_one_time_product`, `google_delete_one_time_product`, `google_activate_purchase_option`, `google_deactivate_purchase_option` |
+
+³ Vitals는 [Play Developer Reporting API](https://developers.google.com/play/developer/reporting)를 사용합니다. 서비스 계정의 Cloud 프로젝트에서 API를 활성화하고 Play Console에서 **앱 정보 보기** 권한을 부여하세요. 이 스코프가 추가되기 전에 저장한 OAuth 토큰은 `app-publish-mcp auth google`로 다시 인증해야 합니다.
 
 ### 프롬프트 (2개)
 | 프롬프트 | 설명 |
@@ -124,6 +131,14 @@ APPLE_P8_PATH=/path/to/AuthKey.p8
 GOOGLE_SERVICE_ACCOUNT_PATH=/path/to/service-account.json
 ```
 
+선택 사항:
+```
+APPLE_VENDOR_NUMBER=YOUR_VENDOR_NUMBER   # sales and finance reports
+APP_PUBLISH_READ_ONLY=true               # read tools only
+```
+
+`APP_PUBLISH_READ_ONLY`는 비어 있거나 `0`·`false`·`no`·`off`가 아닌 모든 값에서 켜집니다(fail closed). 읽기 전용 모드에서는 list/get/search/query/download 도구와 커밋하지 않는 Google edit 세션만 등록됩니다. `outputPath`를 받는 보고서 도구는 로컬 파일을 쓰지만 `overwrite=true` 없이는 기존 파일을 덮어쓰지 않습니다.
+
 서버는 패키지/프로젝트 루트의 `.env`를 자동으로 불러옵니다. 쉘이나 MCP 호스트가 전달한 환경변수가 우선합니다. OAuth 환경변수는 `.env.example`을 참고하세요.
 
 ### 5. Claude Code에 추가
@@ -160,6 +175,14 @@ GOOGLE_SERVICE_ACCOUNT_PATH=/path/to/service-account.json
 6. `apple_delete_placement`는 배치만 삭제합니다. `apple_list_asset_placements`로 사용처를 확인할 수 있고 `apple_delete_asset`는 사용 중인 에셋 삭제를 거부합니다.
 
 Apple은 [App Store Connect API 4.5.1](https://developer.apple.com/documentation/appstoreconnectapi/app-store-connect-api-4-5-1-release-notes)에서 기존 스크린샷 API를 deprecated로 지정했지만 종료일은 발표하지 않았습니다. 기존 4개 도구는 호환성을 위해 유지하며, 새 작업에는 [Asset Library](https://developer.apple.com/documentation/appstoreconnectapi/migrating-to-the-app-asset-library)를 사용하세요. 한국 연령 등급 override에는 `ALL`·`TWELVE_PLUS`도 사용할 수 있습니다.
+
+### 헤더·검색 결과 비주얼, 맞춤형 제품 페이지, A/B 테스트
+
+제품 페이지 헤더와 검색 결과 비주얼은 Asset Library 배치(`PRODUCT_PAGE_HEADER_ASSET`, `APP_STORE_SEARCH_RESULTS_ASSET`)입니다. `apple_get_asset_specs(placementType=...)`로 사양을 고르고 `apple_upload_asset`으로 업로드한 뒤 `apple_create_placement`로 배치합니다. 같은 배치를 맞춤형 제품 페이지 로컬라이제이션과 테스트 처리(treatment)에도 사용할 수 있습니다.
+
+### 스토어 분석
+
+`apple_create_analytics_report_request`로 App 분석 보고서 생성을 시작합니다(첫 데이터는 1~2일 후). 이어서 `apple_list_analytics_reports` → `apple_list_analytics_report_instances` → `apple_download_analytics_report`. `apple_get_sales_report`는 일별 판매량과 수익을 반환합니다. Android에서는 `google_query_vitals`가 최근 28일의 비정상 종료율과 ANR 비율을 반환합니다.
 
 ### iOS 앱 업데이트 제출
 
