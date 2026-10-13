@@ -232,4 +232,6 @@
 | `GOOGLE_CLIENT_SECRET` | Android option 2 | Google Desktop OAuth client secret |
 | `GOOGLE_REFRESH_TOKEN` | Android option 2 | Google OAuth refresh token |
 | `APPLE_VENDOR_NUMBER` | Sales/finance reports | Vendor number from Payments and Financial Reports |
+| `APPLE_REPORTS_KEY_ID` / `APPLE_REPORTS_P8_PATH` | No | Extra key for Sales/Finance/Analytics reports (e.g. Sales and Reports role) |
+| `APPLE_ADMIN_KEY_ID` / `APPLE_ADMIN_P8_PATH` | No | Admin key used only to create or delete analytics report requests |
 | `APP_PUBLISH_READ_ONLY` | No | `true` registers only read tools (list/get/search/query/download, Google edits without commit) |

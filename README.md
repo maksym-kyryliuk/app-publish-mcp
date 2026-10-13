@@ -152,8 +152,14 @@ GOOGLE_SERVICE_ACCOUNT_PATH=/path/to/service-account.json
 Optional:
 ```
 APPLE_VENDOR_NUMBER=YOUR_VENDOR_NUMBER   # sales and finance reports
+APPLE_REPORTS_KEY_ID=REPORTS_KEY_ID      # key for Sales/Finance/Analytics reports
+APPLE_REPORTS_P8_PATH=/path/to/AuthKey_REPORTS.p8
+APPLE_ADMIN_KEY_ID=ADMIN_KEY_ID          # only for creating analytics report requests
+APPLE_ADMIN_P8_PATH=/path/to/AuthKey_ADMIN.p8
 APP_PUBLISH_READ_ONLY=true               # register only read tools (list/get/search/query/download, Google edits without commit)
 ```
+
+Each request picks its Apple key by API. Sales and analytics reads use `APPLE_REPORTS_*`, falling back to `APPLE_ADMIN_*` and then the main key; `financeReports` prefers `APPLE_ADMIN_*` (a Sales and Reports key cannot read it), then `APPLE_REPORTS_*`; creating or deleting an analytics report request uses `APPLE_ADMIN_*`; everything else uses the main key. This lets an App Manager key run the listing while a Sales and Reports key reads reports. Apple lets ADMIN, SALES_AND_REPORTS and FINANCE keys read analytics reports; Sales and Reports keys cannot read finance reports, and creating an analytics report request needs Admin. `*_ISSUER_ID` and `*_KEY_TYPE` default to the main key's values.
 
 The flag fails closed: any value except empty, `0`, `false`, `no` or `off` turns it on. Google edit sessions stay available because listings, tracks and images are read inside an edit; `google_commit_edit` is not registered, so nothing goes live. Report tools that take `outputPath` still write that local file (never over an existing one unless `overwrite=true`).
 

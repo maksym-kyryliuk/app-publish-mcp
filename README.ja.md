@@ -136,6 +136,10 @@ GOOGLE_SERVICE_ACCOUNT_PATH=/path/to/service-account.json
 任意:
 ```
 APPLE_VENDOR_NUMBER=YOUR_VENDOR_NUMBER   # sales and finance reports
+APPLE_REPORTS_KEY_ID=REPORTS_KEY_ID      # key for Sales/Finance/Analytics reports
+APPLE_REPORTS_P8_PATH=/path/to/AuthKey_REPORTS.p8
+APPLE_ADMIN_KEY_ID=ADMIN_KEY_ID          # only for creating analytics report requests
+APPLE_ADMIN_P8_PATH=/path/to/AuthKey_ADMIN.p8
 APP_PUBLISH_READ_ONLY=true               # read tools only
 ```
 

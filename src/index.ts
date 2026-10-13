@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { AppleClient } from './apple/client.js';
+import { AppleClient, AppleKeyConfig } from './apple/client.js';
 import { GoogleClient } from './google/client.js';
 import { appleTools } from './apple/tools.js';
 import { googleTools } from './google/tools.js';
@@ -37,12 +37,30 @@ const appleIssuerId = process.env.APPLE_ISSUER_ID;
 const appleP8Path = process.env.APPLE_P8_PATH;
 const appleKeyType = process.env.APPLE_KEY_TYPE === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'TEAM';
 
+// Optional extra keys, picked per API: APPLE_REPORTS_* for Sales/Finance/Analytics
+// reports, APPLE_ADMIN_* only for changing analytics report requests (Admin-only).
+function extraAppleKey(prefix: string): AppleKeyConfig | undefined {
+  const keyId = process.env[`${prefix}_KEY_ID`];
+  const p8Path = process.env[`${prefix}_P8_PATH`];
+  if (!keyId || !p8Path) return undefined;
+  return {
+    keyId,
+    p8Path,
+    issuerId: process.env[`${prefix}_ISSUER_ID`] ?? appleIssuerId,
+    keyType: process.env[`${prefix}_KEY_TYPE`] === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'TEAM',
+  };
+}
+const appleReportsKey = extraAppleKey('APPLE_REPORTS');
+const appleAdminKey = extraAppleKey('APPLE_ADMIN');
+
 if (appleKeyId && appleP8Path && (appleKeyType === 'INDIVIDUAL' || appleIssuerId)) {
   appleClient = new AppleClient({
     keyId: appleKeyId,
     issuerId: appleIssuerId,
     p8Path: appleP8Path,
     keyType: appleKeyType,
+    reportsKey: appleReportsKey,
+    adminKey: appleAdminKey,
   });
 }
 
@@ -233,6 +251,8 @@ server.resource(
         keyId: appleKeyId ? `${appleKeyId.slice(0, 4)}...` : null,
         issuerId: appleIssuerId ? `${appleIssuerId.slice(0, 8)}...` : null,
         keyType: appleKeyType,
+        reportsKeyId: appleReportsKey ? `${appleReportsKey.keyId.slice(0, 4)}...` : null,
+        adminKeyId: appleAdminKey ? `${appleAdminKey.keyId.slice(0, 4)}...` : null,
       },
       google: {
         connected: !!googleClient,

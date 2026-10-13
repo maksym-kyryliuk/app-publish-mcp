@@ -85,6 +85,34 @@
           "isRequired": false,
           "format": "string",
           "isSecret": false
+        },
+        {
+          "name": "APPLE_REPORTS_KEY_ID",
+          "description": "Extra Apple key ID for Sales/Finance/Analytics reports",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "APPLE_REPORTS_P8_PATH",
+          "description": "Path to the reports key .p8 file",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "APPLE_ADMIN_KEY_ID",
+          "description": "Admin key ID, used only to create or delete analytics report requests",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "APPLE_ADMIN_P8_PATH",
+          "description": "Path to the Admin key .p8 file",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
         }
       ]
     }
